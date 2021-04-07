@@ -162,7 +162,7 @@ class Sketch {
     this._ambient.show(this._ctx);
     this._creatures.forEach(c => {
       c.show(this._ctx);
-      c.move(this._ambient.food);
+      c.move(this._ambient.food, this._creatures);
 
       if (c.ready_to_duplicate) {
         let new_DNA;

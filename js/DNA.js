@@ -1,8 +1,8 @@
 class DNA {
   constructor() {
     this._generation = 1;
-    this._mutation_rate = 0.6;
-    this._mutation_chanche = 0.3;
+    this._mutation_rate = 0.25;
+    this._mutation_chanche = 0.5;
     this._DNA_length = 10;
 
     this._genome = new Array(this._DNA_length);

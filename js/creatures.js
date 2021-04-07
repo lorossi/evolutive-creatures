@@ -13,6 +13,7 @@ class Creature {
     this._max_view_range = 300;
     this._max_view_angle = Math.PI;
     this._min_age = 30;
+    this._carnivore_threshold = 0.8;
 
     this._pos = new Vector(random(width), random(height));
     this._vel = new Vector.random2D();
@@ -34,6 +35,7 @@ class Creature {
     this._infant_age = (this._DNA.genome.genome[6] * 0.9 + 0.1) * this._min_age;
     this._distance_bias = this._DNA.genome.genome[7];
     this._family = this._DNA.genome.genome[8].toString(36).substr(2, 5);
+    this._diet = this._DNA.genome.genome[9];
 
     this._vel.setMag(this._speed);
   }
@@ -84,18 +86,31 @@ class Creature {
 
   }
 
-  move(food) {
+  move(food, creatures) {
     this._age++;
 
     if (this._age < this._infant_age) return;
 
-    if (this._picked_food && !food.includes(this._picked_food)) this._picked_food = null;
+    if (this._picked_food && !food.includes(this._picked_food) && this._diet < this._carnivore_threshold) this._picked_food = null;
+    else if (this._picked_food && !creatures.includes(this._picked_food) && this._diet >= this._carnivore_threshold) this._picked_food = null;
+
 
     if (!this._picked_food) {
+      let food_source;
+
+      if (this._diet < this._carnivore_threshold) {
+        // herbivore
+        food_source = food;
+      } else {
+        // carnivore
+        food_source = creatures.filter(c => c != this).filter(c => c.diet < this._carnivore_threshold);
+      }
+
+
       let best_food, best_vector;
       let best_score = 0;
 
-      food.forEach(f => {
+      food_source.forEach(f => {
         let dist, dist_vector, angle;
         dist_vector = this._pos.copy().sub(f.pos);
         dist = dist_vector.mag();
@@ -120,6 +135,8 @@ class Creature {
       if (best_vector.mag() < this._radius + this._picked_food.radius) {
         this._energy += this._picked_food.eat();
         this._picked_food = null;
+
+        if (this._diet > this._carnivore_threshold) console.log("GNAM! Carnivore ate");
       } else {
         this._vel = best_vector.copy().setMag(this._speed);
       }
@@ -196,5 +213,9 @@ class Creature {
   set heading(h) {
     this._vel.rotate(h);
     this._pos.add(this._vel);
+  }
+
+  get diet() {
+    return this._diet;
   }
 }
