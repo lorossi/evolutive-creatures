@@ -1,22 +1,25 @@
 class Creature {
-  constructor(width, height) {
+  constructor(width, height, born = 0) {
     this._width = width;
     this._height = height;
+    this._born = born;
 
     this._age = 0;
     this._start_energy = 300;
     this._energy = this._start_energy;
-    this._split_energy = this._start_energy * 2;
-    this._max_speed = 4;
+    this._max_speed = 10;
+    this._max_acceleration = 3;
 
-    this._max_radius = 8;
-    this._max_view_range = 300;
+    this._max_radius = 15;
+    this._max_view_range = 500;
     this._max_view_angle = Math.PI;
+    this._max_eat_radius = 6;
     this._min_age = 30;
-    this._carnivore_threshold = 0.8;
+    this._carnivore_threshold = 0.9;
 
     this._pos = new Vector(random(width), random(height));
     this._vel = new Vector.random2D();
+    this._acc = new Vector.random2D();
 
     this._picked_food = null;
 
@@ -26,20 +29,23 @@ class Creature {
 
   unpack_DNA() {
     this._generation = this._DNA.genome.generation;
+    this._family = this._DNA.family;
 
     this._hue = this._DNA.genome.genome[1] * 360;
     this._radius = (this._DNA.genome.genome[2] * 0.8 + 0.2) * this._max_radius;
     this._view_range = (this._DNA.genome.genome[3] * 0.95 + 0.05) * this._max_view_range;
     this._view_angle = (this._DNA.genome.genome[4] * 0.95 + 0.05) * this._max_view_angle;
     this._speed = this._DNA.genome.genome[5] * this._max_speed;
-    this._infant_age = (this._DNA.genome.genome[6] * 0.9 + 0.1) * this._min_age;
-    this._distance_bias = this._DNA.genome.genome[7];
-    this._family = this._DNA.genome.genome[8].toString(36).substr(2, 5);
-    this._diet = this._DNA.genome.genome[9];
+    this._acceleration = this._DNA.genome.genome[6] * this._max_acceleration;
+    this._infant_age = (this._DNA.genome.genome[7] * 0.9 + 0.1) * this._min_age;
+    this._distance_bias = this._DNA.genome.genome[8];
 
+    this._diet = this._DNA.genome.genome[9];
+    this._split_energy = this._start_energy * (3 * this._DNA.genome.genome[10] + 1);
+    this._min_energy = this._start_energy * (0.8 * this._DNA.genome.genome[11] + 0.2);
+    this._eat_radius = this._max_eat_radius * this._DNA.genome.genome[12];
     this._vel.setMag(this._speed);
   }
-
 
   show(ctx) {
     let alpha = this._energy / this._start_energy;
@@ -68,22 +74,6 @@ class Creature {
     ctx.restore();
 
     ctx.restore();
-
-    /*
-    if (this._picked_food) {
-      let dist_vector = this._pos.copy().sub(this._picked_food.pos);
-      ctx.save();
-      ctx.translate(this._pos.x, this._pos.y);
-      ctx.rotate(dist_vector.copy().heading2D() + Math.PI);
-      ctx.moveTo(0, 0);
-      ctx.lineTo(dist_vector.mag(), 0);
-      ctx.closePath();
-      ctx.strokeStyle = "purple";
-      ctx.stroke();
-      ctx.restore();
-    }
-    */
-
   }
 
   move(food, creatures) {
@@ -103,11 +93,10 @@ class Creature {
         food_source = food;
       } else {
         // carnivore
-        food_source = creatures.filter(c => c != this).filter(c => c.diet < this._carnivore_threshold);
+        food_source = creatures.filter(c => c != this && c.carnivore);
       }
 
-
-      let best_food, best_vector;
+      let best_food;
       let best_score = 0;
 
       food_source.forEach(f => {
@@ -122,7 +111,6 @@ class Creature {
           if (score > best_score) {
             best_food = f;
             best_score = score;
-            best_vector = dist_vector.copy();
           }
         }
       });
@@ -132,16 +120,15 @@ class Creature {
       let best_vector;
       best_vector = this._picked_food.pos.copy().sub(this._pos);
 
-      if (best_vector.mag() < this._radius + this._picked_food.radius) {
+      if (best_vector.mag() < this._radius + this._picked_food.radius + (this._eat_radius * this._radius)) {
         this._energy += this._picked_food.eat();
         this._picked_food = null;
-
-        if (this._diet > this._carnivore_threshold) console.log("GNAM! Carnivore ate");
       } else {
-        this._vel = best_vector.copy().setMag(this._speed);
+        this._acc = best_vector.copy().setMag(this._acceleration);
       }
     }
 
+    this._vel.add(this._acc).limit(this._max_speed);
     this._pos.add(this._vel);
 
     if (this._pos.x - this._radius > this._width) this._pos.x -= this._width - this._radius;
@@ -150,11 +137,12 @@ class Creature {
     if (this._pos.y - this._radius > this._height) this._pos.y -= this._height - this._radius;
     else if (this._pos.y + this._radius < 0) this._pos.y += this._height + this._radius;
 
-    let scl = 25;
+    let scl = 10;
     this._energy -= (this._speed / this._max_speed * scl) ** 2 / (scl ** 2);
     this._energy -= this._radius / this._max_radius;
-    this._energy -= (this._view_range / this._max_view_range * 10) ** 3 / (scl ** 3);
-    this._energy -= (this._view_angle / this._max_view_angle * 10) ** 4 / (scl ** 4);
+    this._energy -= (this._view_range / this._max_view_range * scl) ** 3 / (scl ** 3);
+    this._energy -= (this._eat_radius / this._max_eat_radius * scl) ** 3 / (scl ** 3);
+    this._energy -= (this._view_angle / this._max_view_angle * scl) ** 5 / (scl ** 5);
   }
 
   split() {
@@ -163,6 +151,12 @@ class Creature {
     new_DNA = this._DNA.mutate();
     new_DNA.generation++;
     return new_DNA;
+  }
+
+  eat() {
+    let old_energy = this._energy;
+    this._energy = 0;
+    return old_energy;
   }
 
   get DNA() {
@@ -195,11 +189,11 @@ class Creature {
   }
 
   get dead() {
-    return this._energy < 0;
+    return this._energy <= 0;
   }
 
   get ready_to_duplicate() {
-    return this._energy > this._split_energy;
+    return this._energy > this._split_energy && this._energy - this._split_energy > this._min_energy;
   }
 
   get radius() {
@@ -217,5 +211,29 @@ class Creature {
 
   get diet() {
     return this._diet;
+  }
+
+  get carnivore() {
+    return this._diet > this._carnivore_threshold;
+  }
+
+  get formatted_DNA() {
+    return {
+      generation: this._generation,
+      born: this._born,
+      family: this._family,
+      radius: this._radius,
+      view_range: this._view_range,
+      view_angle: this._view_angle,
+      speed: this._speed,
+      acceleration: this._acceleration,
+      infant_age: this._infant_age,
+      distance_bias: this._distance_bias,
+      diet: this._diet,
+      carnivore: this._diet > this._carnivore_threshold,
+      split_energy: this._split_energy,
+      min_energy: this._min_energy,
+      eat_radius: this._eat_radius * this._radius,
+    };
   }
 }

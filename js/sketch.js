@@ -59,13 +59,18 @@ class Sketch {
 
   click(e) {
     // prints the DNA of the closest creature
+    let max_dist = this._width * Math.sqrt(2);
+    let selected;
     for (let i = 0; i < this._creatures.length; i++) {
       let c = this._creatures[i];
-      if (dist(e.offsetX, e.offsetY, c.pos.x, c.pos.y) < c.radius * 10) {
-        console.log(c.DNA);
-        return;
+      let d = dist(e.offsetX, e.offsetY, c.pos.x, c.pos.y);
+      if (d < max_dist) {
+        max_dist = d;
+        selected = c;
       }
     }
+
+    console.log(selected.formatted_DNA);
   }
 
   keyDown(e) {
@@ -110,16 +115,18 @@ class Sketch {
     let old_genomes;
     if (window.localStorage.getItem("genome")) {
       old_genomes = JSON.parse(window.localStorage.getItem("genome"));
+      this._resets = JSON.parse(window.localStorage.getItem("resets"));
+      this._environment.age = JSON.parse(window.localStorage.getItem("age"));
     }
 
 
-    this._ambient.age = 0;
+    this._environment.age = 0;
     this._creatures = [];
     let genome_counter = 0;
     // create new creatures with old genome
     for (let i = 0; i < this._starting_creatures; i++) {
       let new_c, new_d;
-      new_c = new Creature(this._canvas.width, this._canvas.height);
+      new_c = new Creature(this._width, this._height, this._frameCount);
       new_d = new DNA().genomes = old_genomes[genome_counter];
       new_c.DNA = new_d;
       this._creatures.push(new_c);
@@ -139,19 +146,21 @@ class Sketch {
     DNA_to_save = sorted_creatures.map(s => s.DNA);
 
     window.localStorage.setItem("genome", JSON.stringify(DNA_to_save));
+    window.localStorage.setItem("resets", JSON.stringify(this._resets));
+    window.localStorage.setItem("age", JSON.stringify(this._environment.age));
 
     console.log("DNA saved");
   }
 
   setup() {
-    this._ambient = new Ambient(this._canvas.width, this._canvas.height);
     this._resets = 0;
-    this._starting_creatures = 30;
+    this._starting_creatures = 20;
     this._min_creatures = 4;
     this._creatures = [];
     for (let i = 0; i < this._starting_creatures; i++) {
-      this._creatures.push(new Creature(this._canvas.width, this._canvas.height));
+      this._creatures.push(new Creature(this._width, this._height, this._frameCount));
     }
+    this._environment = new Environment(this._width, this._height);
   }
 
 
@@ -159,10 +168,10 @@ class Sketch {
     this.background("white");
 
     let newborns = [];
-    this._ambient.show(this._ctx);
+    this._environment.show(this._ctx);
     this._creatures.forEach(c => {
       c.show(this._ctx);
-      c.move(this._ambient.food, this._creatures);
+      c.move(this._environment.food, this._creatures);
 
       if (c.ready_to_duplicate) {
         let new_DNA;
@@ -170,7 +179,7 @@ class Sketch {
         let dpos;
         dpos = new Vector.random2D().setMag(c.radius * 4);
         let new_c;
-        new_c = new Creature(this._canvas.width, this._canvas.height);
+        new_c = new Creature(this._width, this._height, this._frameCount);
 
         new_c.DNA = new_DNA;
         new_c.pos = c.pos.add(dpos);
@@ -178,27 +187,28 @@ class Sketch {
         newborns.push(new_c);
       }
     });
-    this._ambient.update();
+    this._environment.update();
     this._creatures.push(...newborns);
     this._creatures = this._creatures.filter(c => !c.dead);
 
     if (this._creatures.length <= this._min_creatures) {
+      this._resets++;
       this.saveDNA();
       this.loadDNA();
-      this._resets++;
     }
 
-    let creatures_number = this._creatures.length;
-    let food_number = this._ambient.food.length;
     let newest_generation = Math.max(...this._creatures.map(c => c.generation));
+    let carnivores_number = this._creatures.filter(c => c.carnivore).length;
     this._ctx.save();
     this._ctx.font = "24px Arial";
     this._ctx.fillStyle = "black";
     this._ctx.textBaseline = "top";
-    this._ctx.fillText(`Creatures: ${creatures_number}`, 0, 0);
-    this._ctx.fillText(`Food: ${food_number}`, 0, 24);
-    this._ctx.fillText(`Gen: ${newest_generation}`, 0, 48);
-    this._ctx.fillText(`Resets: ${this._resets}`, 0, 72);
+    this._ctx.fillText(`Creatures: ${this._creatures.length}`, 0, 0);
+    this._ctx.fillText(`Carnivores: ${carnivores_number}`, 0, 24);
+    this._ctx.fillText(`Food: ${this._environment.food.length}`, 0, 48);
+    this._ctx.fillText(`Gen: ${newest_generation}`, 0, 72);
+    this._ctx.fillText(`Resets: ${this._resets}`, 0, 96);
+    this._ctx.fillText(`Frames: ${this._environment.age}`, 0, 120);
     this._ctx.restore();
   }
 }
@@ -211,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // inject canvas in page
   if (canvas.getContext) {
     ctx = canvas.getContext("2d", { alpha: false });
-    s = new Sketch(canvas, ctx, 60);
+    s = new Sketch(canvas, ctx);
   }
 
   canvas.addEventListener("click", (e) => {
