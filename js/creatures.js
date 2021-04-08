@@ -9,6 +9,7 @@ class Creature {
     this._energy = this._start_energy;
     this._max_speed = 10;
     this._max_acceleration = 3;
+    this._combact_factor = 25;
 
     this._max_radius = 15;
     this._max_view_range = 500;
@@ -22,6 +23,7 @@ class Creature {
     this._acc = new Vector.random2D();
 
     this._picked_food = null;
+    this._picked_enemy = null;
 
     this._DNA = new DNA();
     this.unpack_DNA();
@@ -39,11 +41,15 @@ class Creature {
     this._acceleration = this._DNA.genome.genome[6] * this._max_acceleration;
     this._infant_age = (this._DNA.genome.genome[7] * 0.9 + 0.1) * this._min_age;
     this._distance_bias = this._DNA.genome.genome[8];
-
     this._diet = this._DNA.genome.genome[9];
     this._split_energy = this._start_energy * (3 * this._DNA.genome.genome[10] + 1);
     this._min_energy = this._start_energy * (0.8 * this._DNA.genome.genome[11] + 0.2);
     this._eat_radius = this._max_eat_radius * this._DNA.genome.genome[12];
+    this._aggressivity = this._DNA.genome.genome[13] / 100;
+    this._attack = this._DNA.genome.genome[14];
+    this._defence = this._DNA.genome.genome[15];
+    this._attack_radius = this._DNA.genome.genome[16] * this._max_view_range;
+
     this._vel.setMag(this._speed);
   }
 
@@ -74,6 +80,18 @@ class Creature {
     ctx.restore();
 
     ctx.restore();
+
+    if (this._picked_enemy) {
+      ctx.save();
+      ctx.strokeStyle = "red";
+      ctx.beginPath();
+      ctx.moveTo(this._pos.x, this._pos.y);
+      ctx.lineTo(this._picked_enemy.pos.x, this._picked_enemy.pos.y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+      this._picked_enemy = null;
+    }
   }
 
   move(food, creatures) {
@@ -121,12 +139,41 @@ class Creature {
       best_vector = this._picked_food.pos.copy().sub(this._pos);
 
       if (best_vector.mag() < this._radius + this._picked_food.radius + (this._eat_radius * this._radius)) {
-        this._energy += this._picked_food.eat();
+        this._energy += this._picked_food.eat_creature();
         this._picked_food = null;
       } else {
         this._acc = best_vector.copy().setMag(this._acceleration);
       }
     }
+
+
+    if (this._aggressivity < random()) {
+      let best_enemy;
+      let best_score = 0;
+
+      let enemies = creatures.filter(c => c != this);
+      enemies.forEach(e => {
+        let dist, dist_vector, angle;
+        dist_vector = this._pos.copy().sub(e.pos);
+        dist = dist_vector.mag();
+        angle = dist_vector.heading2D() + Math.PI;
+
+        if (dist < this._attack_radius && Math.abs(angle) < this._view_angle && this._aggressivity > e.aggressivity && this._attack > e.defence) {
+          let score = Math.sqrt(Math.pow(this._aggressivity - e.aggressivity, 2) + Math.pow(this._attack - e.attack, 2) + Math.pow(this._defence - e.defence, 2));
+          if (score > best_score) {
+            best_score = score;
+            best_enemy = e;
+          }
+        }
+      });
+
+      if (best_enemy) {
+        this._picked_enemy = best_enemy;
+        this._energy -= this._attack * this._combact_factor / 2;
+        best_enemy.attack_creature(this._attack);
+      }
+    }
+
 
     this._vel.add(this._acc).limit(this._max_speed);
     this._pos.add(this._vel);
@@ -153,7 +200,13 @@ class Creature {
     return new_DNA;
   }
 
-  eat() {
+  attack_creature(a) {
+    let diff = (a - this._defence) * this._combact_factor;
+    this._energy -= diff;
+    console.log({ diff: diff, dead: this._energy < 0 });
+  }
+
+  eat_creature() {
     let old_energy = this._energy;
     this._energy = 0;
     return old_energy;
@@ -217,6 +270,18 @@ class Creature {
     return this._diet > this._carnivore_threshold;
   }
 
+  get aggressivity() {
+    return this._aggressivity;
+  }
+
+  get attack() {
+    return this._attack;
+  }
+
+  get defence() {
+    return this._defence;
+  }
+
   get formatted_DNA() {
     return {
       generation: this._generation,
@@ -234,6 +299,10 @@ class Creature {
       split_energy: this._split_energy,
       min_energy: this._min_energy,
       eat_radius: this._eat_radius * this._radius,
+      attack: this._attack,
+      defence: this._defence,
+      aggressivity: this._aggressivity,
+      attack_radius: this._attack_radius,
     };
   }
 }

@@ -22,7 +22,7 @@ class Food {
     this._percent = constrain(this._age / this._max_age, 0, 1);
   }
 
-  eat() {
+  eat_creature() {
     this.dead = true;
     return this.energy;
   }

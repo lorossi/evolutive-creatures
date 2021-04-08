@@ -3,7 +3,7 @@ class DNA {
     this._generation = 1;
     this._mutation_rate = 0.3;
     this._mutation_chanche = 0.5;
-    this._DNA_length = 13;
+    this._DNA_length = 17;
 
     this._genome = new Array(this._DNA_length);
     for (let i = 0; i < this._genome.length; i++) {
