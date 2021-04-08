@@ -45,7 +45,7 @@ class Creature {
     this._split_energy = this._start_energy * (3 * this._DNA.genome.genome[10] + 1);
     this._min_energy = this._start_energy * (0.8 * this._DNA.genome.genome[11] + 0.2);
     this._eat_radius = this._max_eat_radius * this._DNA.genome.genome[12];
-    this._aggressivity = this._DNA.genome.genome[13] / 100;
+    this._aggressivity = this._DNA.genome.genome[13];
     this._attack = this._DNA.genome.genome[14];
     this._defence = this._DNA.genome.genome[15];
     this._attack_radius = this._DNA.genome.genome[16] * this._max_view_range;
@@ -158,8 +158,8 @@ class Creature {
         dist = dist_vector.mag();
         angle = dist_vector.heading2D() + Math.PI;
 
-        if (dist < this._attack_radius && Math.abs(angle) < this._view_angle && this._aggressivity > e.aggressivity && this._attack > e.defence) {
-          let score = Math.sqrt(Math.pow(this._aggressivity - e.aggressivity, 2) + Math.pow(this._attack - e.attack, 2) + Math.pow(this._defence - e.defence, 2));
+        if (dist < this._attack_radius && Math.abs(angle) < this._view_angle && this._attack > e.defence) {
+          let score = Math.sqrt(Math.pow(this._attack - e.attack, 2) + Math.pow(this._defence - e.defence, 2));
           if (score > best_score) {
             best_score = score;
             best_enemy = e;
@@ -169,7 +169,6 @@ class Creature {
 
       if (best_enemy) {
         this._picked_enemy = best_enemy;
-        this._energy -= this._attack * this._combact_factor / 2;
         best_enemy.attack_creature(this._attack);
       }
     }
@@ -203,7 +202,6 @@ class Creature {
   attack_creature(a) {
     let diff = (a - this._defence) * this._combact_factor;
     this._energy -= diff;
-    console.log({ diff: diff, dead: this._energy < 0 });
   }
 
   eat_creature() {

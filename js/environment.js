@@ -2,17 +2,17 @@ class Food {
   constructor(x, y, spawn_delay = false) {
     this.x = x;
     this.y = y;
-    this._max_energy = 200;
+    this._max_energy = 350;
 
     this._percent = 0;
-    this._max_age = random(1, 5) * 60;
+    this._max_age = random(0.5, 2.5) * 60;
     this._max_radius = 10;
     this.pos = new Vector(this.x, this.y);
     this.dead = false;
     this.color = "black";
 
     if (spawn_delay)
-      this._age = random(1, 5) * -60;
+      this._age = random(0.5, 2.5) * -60;
     else
       this._age = 0;
   }
@@ -47,9 +47,9 @@ class Environment {
     this._height = height;
     this._border = 0.15;
 
-    this._food_decrease_age = 60 * 60;
+    this._food_decrease_age = 30 * 60;
     this._age = 0;
-    this._food_number = 50;
+    this._food_number = 75;
     this._food = [];
     for (let i = 0; i < this._food_number; i++) {
       let fx, fy;
@@ -79,7 +79,7 @@ class Environment {
 
     let food_number;
     if (this._age > this._food_decrease_age) {
-      food_number = this._food_number - (this._age - this._food_decrease_age) / (60 * 2.5);
+      food_number = this._food_number - (this._age - this._food_decrease_age) / (60);
     } else {
       food_number = this._food_number;
     }
