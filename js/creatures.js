@@ -39,7 +39,7 @@ class Creature {
     this._view_angle = (this._DNA.genome.genome[4] * 0.95 + 0.05) * this._max_view_angle;
     this._speed = this._DNA.genome.genome[5] * this._max_speed;
     this._acceleration = this._DNA.genome.genome[6] * this._max_acceleration;
-    this._infant_age = (this._DNA.genome.genome[7] * 0.9 + 0.1) * this._min_age;
+    this._infancy_age = (this._DNA.genome.genome[7] * 0.9 + 0.1) * this._min_age;
     this._distance_bias = this._DNA.genome.genome[8];
     this._diet = this._DNA.genome.genome[9];
     this._split_energy = this._start_energy * (3 * this._DNA.genome.genome[10] + 1);
@@ -97,7 +97,7 @@ class Creature {
   move(food, creatures) {
     this._age++;
 
-    if (this._age < this._infant_age) return;
+    if (this._age < this._infancy_age) return;
 
     if (this._picked_food && !food.includes(this._picked_food) && this._diet < this._carnivore_threshold) this._picked_food = null;
     else if (this._picked_food && !creatures.includes(this._picked_food) && this._diet >= this._carnivore_threshold) this._picked_food = null;
@@ -290,7 +290,7 @@ class Creature {
       view_angle: this._view_angle,
       speed: this._speed,
       acceleration: this._acceleration,
-      infant_age: this._infant_age,
+      infancy_age: this._infancy_age,
       distance_bias: this._distance_bias,
       diet: this._diet,
       carnivore: this._diet > this._carnivore_threshold,
