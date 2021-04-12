@@ -42,8 +42,8 @@ class Creature {
     this._infancy_age = (this._DNA.genome.genome[7] * 0.9 + 0.1) * this._min_age;
     this._distance_bias = this._DNA.genome.genome[8];
     this._diet = this._DNA.genome.genome[9];
-    this._split_energy = this._start_energy * (3 * this._DNA.genome.genome[10] + 1);
-    this._min_energy = this._start_energy * (0.8 * this._DNA.genome.genome[11] + 0.2);
+    this._split_energy = this._start_energy * (2 * this._DNA.genome.genome[10] + 4);
+    this._min_energy = this._start_energy * (0.5 * this._DNA.genome.genome[11] + 2);
     this._eat_radius = this._max_eat_radius * this._DNA.genome.genome[12];
     this._aggressivity = this._DNA.genome.genome[13];
     this._attack = this._DNA.genome.genome[14];
