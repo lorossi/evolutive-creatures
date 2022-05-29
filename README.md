@@ -50,7 +50,7 @@ Carnivore creatures will discard food popping up in the environment and will onl
 
 ### Mutation
 
-*Interesting, but how does DNA mutation work?* Each gene has a certain chanche of changing its value in a certain range. The DNA is simply an array of floats (genes) in range 0-1. Later on, these genomes are *unpacked* by each creatures and those numbers are converted into useful stats, such as the ones listed above.
+*Interesting, but how does DNA mutation work?* Each gene has a certain chance of changing its value in a certain range. The DNA is simply an array of floats (genes) in range 0-1. Later on, these genomes are *unpacked* by each creatures and those numbers are converted into useful stats, such as the ones listed above.
 
 ## Observations
 
