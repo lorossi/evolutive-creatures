@@ -3,7 +3,11 @@ class DNA {
     this._mutation_rate = 0.1;
     this._DNA_length = 20;
 
-    this._genome = new Array(this._DNA_length).fill(0).map(() => Math.random());
+    this._genome = new Array(this._DNA_length).fill(0);
+  }
+
+  random() {
+    this._genome = this._genome.map(() => Math.random());
   }
 
   mutate() {
